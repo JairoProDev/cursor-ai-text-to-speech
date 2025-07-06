@@ -210,6 +210,8 @@ export function activate(context: vscode.ExtensionContext) {
 function ensureTTSPanelExists(context: vscode.ExtensionContext): void {
     if (ttsPanel) {
         ttsPanel.reveal(vscode.ViewColumn.Beside);
+        // Intentar reinyectar el observer cada vez que se muestra el panel
+        injectChatObserverWithRetry();
         return;
     }
 
@@ -237,6 +239,9 @@ function ensureTTSPanelExists(context: vscode.ExtensionContext): void {
     // Set panel HTML content
     ttsPanel.webview.html = getWebviewContent(ttsPanel.webview, context, initialSettings);
 
+    // Inyectar el observer al cargar el panel
+    injectChatObserverWithRetry();
+
     // Handle messages from the webview
     ttsPanel.webview.onDidReceiveMessage(
         message => {
@@ -244,7 +249,9 @@ function ensureTTSPanelExists(context: vscode.ExtensionContext): void {
                 case 'webviewReady':
                     logDebug('WebView is ready');
                     break;
-
+                case 'observerReady':
+                    logDebug('Chat observer is ready and running');
+                    break;
                 case 'speakText':
                     logDebug(`Speaking text: ${message.text.substring(0, 50)}...`);
                     break;
@@ -310,6 +317,25 @@ function ensureTTSPanelExists(context: vscode.ExtensionContext): void {
         null,
         context.subscriptions
     );
+}
+
+// Función para inyectar el observer con reintentos si es necesario
+function injectChatObserverWithRetry(retries = 5, delay = 1000) {
+    if (!ttsPanel) return;
+    const script = getChatObserverScript();
+    let attempts = 0;
+    function tryInject() {
+        if (!ttsPanel) return;
+        logDebug(`Intentando inyectar observer en el chat (intento ${attempts + 1})`);
+        ttsPanel.webview.postMessage({ command: 'injectObserver', script });
+        attempts++;
+        if (attempts < retries) {
+            setTimeout(tryInject, delay);
+        } else {
+            logDebug('No se pudo confirmar la inyección del observer tras varios intentos.');
+        }
+    }
+    tryInject();
 }
 
 // Function to dispose of the TTS panel

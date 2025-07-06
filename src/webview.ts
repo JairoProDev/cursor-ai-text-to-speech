@@ -27,6 +27,12 @@ export function getChatObserverScript(): string {
       }
       
       debugLog('Observer script started');
+      // Notificar a la extensión que el observer está listo
+      if (window.vscode) {
+        window.vscode.postMessage({
+          command: 'observerReady'
+        });
+      }
       
       // Setup message handler for communication from extension
       window.addEventListener('message', event => {
