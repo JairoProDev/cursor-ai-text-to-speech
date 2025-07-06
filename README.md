@@ -1,159 +1,127 @@
 # Cursor AI TTS Extension
 
-A Visual Studio Code extension that adds Text-to-Speech capabilities to Cursor AI responses, allowing you to listen to AI assistant responses.
+¡Convierte las respuestas del chat AI de Cursor en voz de manera automática y productiva!
 
-## Features
+## 🚀 Características principales
+- **Lectura automática y manual** de respuestas AI en Cursor/VS Code.
+- **Panel de configuración intuitivo**: elige voz, velocidad, tono y filtrado de código.
+- **Atajos de teclado sin conflictos** y personalizables.
+- **Feedback visual y auditivo** claro en cada acción.
+- **Integración robusta**: no necesitas scripts manuales ni pasos extra.
 
-- Automatically reads AI responses using your system's speech synthesis
-- Control which voice is used for reading
-- Adjust speech rate and pitch
-- Option to skip code blocks when reading
-- Simple UI to control TTS settings
-- Auto-read responses as they arrive
-- Easily enable/disable the feature with commands or keyboard shortcuts
+---
 
-## Requirements
+## 🖥️ Instalación
 
-- Cursor Editor (built on VS Code)
-- A system with speech synthesis support (most modern operating systems)
-
-## Installation
-
-### From VSIX file
-
-1. Download the `.vsix` file from the releases page
-2. In VS Code, open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-3. Type "Install from VSIX" and select the command
-4. Navigate to the downloaded `.vsix` file and select it
-
-### From source
-
-1. Clone this repository
-2. Run `npm install` to install dependencies
-3. Run `npm run compile` to compile the extension
-4. Run `npm run package` to create a `.vsix` file
-5. Follow the steps above to install the `.vsix` file
-
-## Usage
-
-Once installed, the extension will automatically read aloud responses from the Cursor AI assistant. You can control the TTS features using the following commands:
-
-- `Enable Text-to-Speech for AI Responses`: Enable TTS
-- `Disable Text-to-Speech for AI Responses`: Disable TTS
-- `Toggle Auto-Read for AI Responses`: Turn auto-reading on/off
-- `Read Last AI Response`: Manually read the last detected AI response
-- `Show Text-to-Speech Settings`: Open settings page
-
-### Keyboard Shortcuts
-
-- `Alt+R`: Read the last AI response
-- `Alt+Shift+R`: Toggle auto-read feature on/off
-
-## Extension Settings
-
-This extension contributes the following settings:
-
-- `cursor-ai-tts.enabled`: Enable or disable text-to-speech for AI responses
-- `cursor-ai-tts.autoRead`: Automatically read AI responses when detected
-- `cursor-ai-tts.voice`: Preferred voice for text-to-speech
-- `cursor-ai-tts.rate`: Speech rate (0.5 to 2.0)
-- `cursor-ai-tts.pitch`: Speech pitch (0.5 to 2.0)
-- `cursor-ai-tts.filterCodeBlocks`: Skip code blocks when reading AI responses
-
-## Chat Interface Integration
-
-To hear responses from the Cursor AI chat interface, you have these options:
-
-### 1. Automatic Integration (Recommended)
-
-- Make sure auto-read is enabled (default setting)
-- Use the chat as normal, and responses should be read automatically
-- If auto-read isn't working, use `Alt+R` to read the last response
-- Toggle auto-read on/off with `Alt+Shift+R`
-
-### 2. Manual Script Injection 
-
-If the automatic integration isn't working, you can manually inject the observer script:
-
-1. Open the developer console in the chat interface (F12 or Right-Click -> Inspect)
-2. Paste this script:
-
-   ```javascript
-   // Observer for Cursor AI Chat interface
-   (function() {
-     console.log('[Cursor AI TTS] Setting up chat observer');
-     
-     // Create a mutation observer to watch for AI responses
-     const observer = new MutationObserver(mutations => {
-       // Look for AI responses in the chat
-       const aiMessages = document.querySelectorAll(
-         '.chat-message-ai, .agent-turn, .cursor-chat-message-ai, .claude-message, ' +
-         '.message-block[data-message-author-type="ai"], .chat-entry[data-role="assistant"]'
-       );
-       
-       if (aiMessages.length > 0) {
-         // Get the last (newest) message
-         const lastMessage = aiMessages[aiMessages.length - 1];
-         
-         // Extract text content
-         const messageText = lastMessage.textContent.trim();
-         
-         if (messageText && messageText.length > 10) {
-           console.log('[Cursor AI TTS] Found AI response');
-           
-           // Send to VS Code extension via vscode.postMessage
-           try {
-             // Execute the command to send the text to the TTS extension
-             // This works because the chat interface is in the VS Code webview context
-             window.vscode.postMessage({
-               command: 'executeCommand',
-               commandId: 'cursor-ai-tts.aiResponseDetected',
-               args: [messageText]
-             });
-             console.log('[Cursor AI TTS] Sent message to extension');
-           } catch (e) {
-             console.error('[Cursor AI TTS] Error sending message to extension:', e);
-           }
-         }
-       }
-     });
-     
-     // Start observing the document
-     observer.observe(document.body, {
-       childList: true,
-       subtree: true,
-       characterData: true
-     });
-     
-     console.log('[Cursor AI TTS] Chat observer started');
-   })();
+### Desde archivo VSIX
+1. Empaqueta la extensión con `npm run package` (o descarga el `.vsix` si ya lo tienes).
+2. **Copia el archivo `.vsix` a tu escritorio de Windows** si trabajas en WSL:
+   ```bash
+   cp /home/tu_usuario/proyectos/cursor-ai-tts/cursor-ai-tts-0.1.0.vsix /mnt/c/Users/tu_usuario/Desktop/
    ```
+3. Abre Cursor o VS Code en Windows.
+4. Ve a la paleta de comandos (`Ctrl+Shift+P`), busca `Install from VSIX` y selecciona el archivo desde tu escritorio.
 
-### 3. Alternative Method
+### Desde el código fuente
+1. Clona este repositorio en tu entorno de desarrollo (WSL recomendado).
+2. Ejecuta:
+   ```bash
+   npm install
+   npm run compile
+   npm run package
+   ```
+3. Sigue los pasos anteriores para instalar el `.vsix`.
 
-If all else fails, you can manually copy AI responses and trigger reading with `Alt+R`.
+---
 
-## Known Issues
+## 🧑‍💻 Uso rápido
+- **La extensión leerá automáticamente las respuestas del chat AI** si tienes activada la opción de auto-lectura.
+- Puedes abrir el panel de configuración desde la paleta de comandos (`Show Text-to-Speech Settings`).
+- Cambia voz, velocidad, tono y filtrado de código desde el panel.
 
-- The extension can't detect all AI responses if their DOM structure changes significantly
-- Some voices may not render code terms correctly
-- Chat detection may require manual script injection in some cases
+### Comandos disponibles
+- `Enable Text-to-Speech for AI Responses`
+- `Disable Text-to-Speech for AI Responses`
+- `Toggle Auto-Read for AI Responses`
+- `Read Last AI Response`
+- `Show Text-to-Speech Settings`
 
-## Release Notes
+### Atajos de teclado (por defecto)
+- `Ctrl+Alt+R`: Leer la última respuesta AI
+- `Ctrl+Alt+Shift+R`: Alternar auto-lectura
+
+---
+
+## ⚙️ Configuración
+- `cursor-ai-tts.enabled`: Activar/desactivar TTS
+- `cursor-ai-tts.autoRead`: Lectura automática
+- `cursor-ai-tts.voice`: Voz preferida
+- `cursor-ai-tts.rate`: Velocidad (0.5 a 2.0)
+- `cursor-ai-tts.pitch`: Tono (0.5 a 2.0)
+- `cursor-ai-tts.filterCodeBlocks`: Saltar bloques de código
+
+---
+
+## 🧩 ¿Cómo funciona?
+
+```mermaid
+graph TD;
+    A[Respuesta AI en el chat de Cursor] --> B{Observer detecta mensaje}
+    B -->|Sí| C[La extensión recibe el texto]
+    C -->|Auto-lectura activada| D[Se lee en voz alta]
+    C -->|Auto-lectura desactivada| E[Esperando comando manual]
+    E -->|Ctrl+Alt+R| D
+```
+
+---
+
+## ❓ Preguntas frecuentes
+
+**¿Funciona en WSL?**
+> Sí, pero debes instalar y empaquetar la extensión desde WSL y luego copiar el `.vsix` a Windows para instalarlo en Cursor/VS Code.
+
+**¿Necesito inyectar scripts manualmente?**
+> ¡No! La integración es automática y robusta. El observer se inyecta y comunica solo.
+
+**¿Por qué no escucho nada?**
+> - Verifica que tu sistema tiene voces instaladas y el volumen no está en silencio.
+> - Abre el panel de configuración y prueba la voz.
+> - Asegúrate de que la extensión está habilitada y el panel de TTS abierto.
+
+**¿Puedo cambiar los atajos de teclado?**
+> Sí, desde las preferencias de atajos de Cursor/VS Code.
+
+**¿Qué hago si la extensión no detecta respuestas?**
+> - Asegúrate de estar usando la última versión.
+> - Reinstala la extensión.
+> - Si usas WSL, asegúrate de instalar el `.vsix` desde Windows.
+
+---
+
+## 🛠️ Solución de problemas
+- **No se instala el `.vsix`**: Copia el archivo a una ruta de Windows antes de instalar.
+- **No se lee la respuesta**: Verifica que la extensión esté habilitada y el panel abierto.
+- **Errores de voz**: Prueba con otra voz o ajusta la velocidad/tono.
+
+---
+
+## 📝 Notas de versión
+
+### 0.3.0
+- Integración automática y robusta con el chat de Cursor.
+- Mejor UX en el panel de configuración.
+- Feedback visual y auditivo mejorado.
+- Código refactorizado y documentado.
 
 ### 0.2.0
-
-- Added auto-read feature for AI responses
-- Added keyboard shortcuts for reading and toggling auto-read
-- Improved chat detection methods
-- Enhanced documentation
+- Añadida auto-lectura de respuestas AI
+- Atajos de teclado mejorados
+- Mejoras en la detección de chat
 
 ### 0.1.0
+- Versión inicial
 
-- Initial release
-- Basic TTS functionality for Cursor AI responses
-- Settings for controlling voice, rate, pitch, and code block handling
+---
 
-## License
-
-This extension is licensed under the [MIT License](LICENSE)
+## 📄 Licencia
+MIT
