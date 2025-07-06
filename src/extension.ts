@@ -46,29 +46,10 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         vscode.commands.registerCommand('cursor-ai-tts.readLastResponse', () => {
-            // Try to get text from the last AI response
             if (lastAIResponseText) {
-                if (ttsPanel) {
-                    // Use the forceSpeech method
-                    ttsPanel.webview.postMessage({
-                        command: 'forceSpeech',
-                        text: lastAIResponseText
-                    });
-                } else if (ttsEnabled) {
-                    ensureTTSPanelExists(context);
-                    // Delay to ensure panel is created before sending command
-                    setTimeout(() => {
-                        if (ttsPanel) {
-                            ttsPanel.webview.postMessage({
-                                command: 'forceSpeech',
-                                text: lastAIResponseText
-                            });
-                        }
-                    }, 1000);
-                }
+                handleNewAIResponse(lastAIResponseText);
             } else {
-                // Show a message to the user
-                showInfo('No AI response detected. Try sending a message to the AI assistant first.');
+                showInfo('No AI response detected. Try enviando un mensaje al asistente AI primero.');
             }
         })
     );
@@ -85,18 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
     // Register a command to receive AI responses from chat interface
     context.subscriptions.push(
         vscode.commands.registerCommand('cursor-ai-tts.aiResponseDetected', (text: string) => {
-            if (text && text.length > 10) {
-                logDebug(`Received AI response from chat interface: ${text.substring(0, 50)}...`);
-                lastAIResponseText = text;
-                
-                // If TTS is enabled, panel exists, and auto-read is on, speak it
-                if (ttsEnabled && ttsPanel && autoReadEnabled) {
-                    ttsPanel.webview.postMessage({
-                        command: 'forceSpeech',
-                        text: text
-                    });
-                }
-            }
+            handleNewAIResponse(text);
         })
     );
 
@@ -111,73 +81,26 @@ export function activate(context: vscode.ExtensionContext) {
             if (!ttsEnabled || !ttsPanel) {
                 return;
             }
-
             const document = event.document;
             const uri = document.uri.toString();
             const changes = event.contentChanges;
-            
-            // Skip if no changes
             if (changes.length === 0) {
                 return;
             }
-
             try {
-                // Process only significant changes
                 for (const change of changes) {
                     const changedText = change.text;
-                    
-                    // Skip very short changes
-                    if (changedText.length < 10) {
-                        continue;
-                    }
-
-                    // Skip if the change is likely typing (one line at a time)
-                    if (changedText.split('\n').length <= 1 && changedText.length < 50) {
-                        continue;
-                    }
-                    
-                    // Check if this is a new document or significant addition to an existing document
+                    if (changedText.length < 10) continue;
+                    if (changedText.split('\n').length <= 1 && changedText.length < 50) continue;
                     const previousLength = activeDocumentChanges.get(uri) || 0;
                     const currentLength = document.getText().length;
                     activeDocumentChanges.set(uri, currentLength);
-                    
-                    const isNewContent = previousLength === 0 || 
-                        (currentLength - previousLength) > 100 || 
-                        changedText.length > 100;
-                    
-                    if (!isNewContent) {
-                        continue;
-                    }
-                    
-                    // Check for patterns that indicate AI responses
-                    const isLikelyAIResponse = 
-                        // Is this a markdown document?
-                        document.languageId === 'markdown' ||
-                        // Or contains markdown code blocks?
-                        changedText.includes('```') ||
-                        // Or has reasonably complete sentences?
-                        (changedText.includes('. ') && changedText.length > 80) ||
-                        // Or has bullet points?
-                        (changedText.includes('* ') && changedText.includes('\n')) ||
-                        // Or has numbered lists?
-                        (/\d+\.\s/.test(changedText) && changedText.includes('\n'));
-                    
+                    const isNewContent = previousLength === 0 || (currentLength - previousLength) > 100 || changedText.length > 100;
+                    if (!isNewContent) continue;
+                    const isLikelyAIResponse = document.languageId === 'markdown' || changedText.includes('```') || (changedText.includes('. ') && changedText.length > 80) || (changedText.includes('* ') && changedText.includes('\n')) || (/\d+\.\s/.test(changedText) && changedText.includes('\n'));
                     if (isLikelyAIResponse) {
-                        logDebug(`Detected likely AI response in document: ${uri}`);
-                        logDebug(`Change length: ${changedText.length}, content preview: ${changedText.substring(0, 100)}...`);
-                        
-                        // This looks like an AI-generated response based on patterns
-                        lastAIResponseText = changedText;
-                        
-                        // Speak if auto-read is enabled
-                        if (autoReadEnabled && ttsPanel) {
-                            ttsPanel.webview.postMessage({
-                                command: 'forceSpeech',
-                                text: changedText
-                            });
-                        }
-                        
-                        break; // Process only one significant change per event
+                        handleNewAIResponse(changedText);
+                        break;
                     }
                 }
             } catch (error) {
@@ -192,40 +115,16 @@ export function activate(context: vscode.ExtensionContext) {
             if (!ttsEnabled || !ttsPanel || !autoReadEnabled) {
                 return;
             }
-            
             try {
                 const uri = document.uri.toString();
                 const text = document.getText();
-                
-                // Skip empty or very short documents
                 if (text.length < 50) {
                     return;
                 }
-                
-                // Track this document
                 activeDocumentChanges.set(uri, text.length);
-                
-                // Only process new markdown documents or cursor chat files
-                const isCursorAIDocument = 
-                    document.languageId === 'markdown' || 
-                    uri.includes('cursor') || 
-                    uri.includes('chat') ||
-                    uri.includes('assistant');
-                
+                const isCursorAIDocument = document.languageId === 'markdown' || uri.includes('cursor') || uri.includes('chat') || uri.includes('assistant');
                 if (isCursorAIDocument) {
-                    logDebug(`New document opened that may contain AI response: ${uri}`);
-                    logDebug(`Document length: ${text.length}, preview: ${text.substring(0, 100)}...`);
-                    
-                    // This looks like it might be an AI response document
-                    lastAIResponseText = text;
-                    
-                    // Speak if auto-read is enabled
-                    if (autoReadEnabled && ttsPanel) {
-                        ttsPanel.webview.postMessage({
-                            command: 'forceSpeech',
-                            text: text
-                        });
-                    }
+                    handleNewAIResponse(text);
                 }
             } catch (error) {
                 logDebug(`Error processing new document: ${error}`);
@@ -244,14 +143,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('cursor.cursorChatResponse', (args: any) => {
             logDebug(`Cursor chat response detected with args: ${JSON.stringify(args)}`);
             if (args && args.text) {
-                lastAIResponseText = args.text;
-                
-                if (ttsEnabled && autoReadEnabled && ttsPanel) {
-                    ttsPanel.webview.postMessage({
-                        command: 'forceSpeech',
-                        text: args.text
-                    });
-                }
+                handleNewAIResponse(args.text);
             }
         })
     );
@@ -441,4 +333,23 @@ function saveSettings(settings: any): void {
 // This method is called when your extension is deactivated
 export function deactivate() {
     disposeTTSPanel();
+}
+
+// Central handler for new AI responses
+function handleNewAIResponse(text: string) {
+    if (!text || text.length < 10) {
+        showInfo('No AI response detected. Try sending a message to the AI assistant first.');
+        return;
+    }
+    lastAIResponseText = text;
+    logDebug(`AI response detected: ${text.substring(0, 80)}...`);
+    if (ttsEnabled && ttsPanel && autoReadEnabled) {
+        ttsPanel.webview.postMessage({
+            command: 'forceSpeech',
+            text: text
+        });
+        showInfo('Leyendo respuesta AI...');
+    } else if (!ttsPanel && ttsEnabled) {
+        showInfo('Panel de TTS no disponible. Intenta habilitar la extensión.');
+    }
 } 
