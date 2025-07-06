@@ -387,20 +387,26 @@ export function getWebviewContent(
         <h1>Cursor AI TTS Settings</h1>
         
         <div class="settings-row">
-            <label for="voice">Voice:</label>
+            <label for="voice">Voice:
+                <span style="font-size:0.9em;color:var(--vscode-descriptionForeground);">Select the voice for reading AI responses.</span>
+            </label>
             <select id="voice"></select>
-            <button id="testVoice">Test Voice</button>
+            <button id="testVoice" style="font-weight:bold;background:var(--vscode-button-hoverBackground);">Test Voice</button>
             <button id="reloadVoices">Reload Voices</button>
         </div>
         <div id="voiceStatus">Found 0 voices</div>
         
         <div class="settings-row">
-            <label for="rate">Rate: <span id="rateValue">1</span></label>
+            <label for="rate">Rate: <span id="rateValue">1</span>
+                <span style="font-size:0.9em;color:var(--vscode-descriptionForeground);">Adjust the speed of the speech (0.5 = slow, 2 = fast).</span>
+            </label>
             <input type="range" min="0.5" max="2" step="0.1" class="slider" id="rate" value="${initialSettings.rate}">
         </div>
         
         <div class="settings-row">
-            <label for="pitch">Pitch: <span id="pitchValue">1</span></label>
+            <label for="pitch">Pitch: <span id="pitchValue">1</span>
+                <span style="font-size:0.9em;color:var(--vscode-descriptionForeground);">Adjust the tone of the voice (0.5 = low, 2 = high).</span>
+            </label>
             <input type="range" min="0.5" max="2" step="0.1" class="slider" id="pitch" value="${initialSettings.pitch}">
         </div>
         
@@ -411,15 +417,17 @@ export function getWebviewContent(
         
         <div class="checkbox-row">
             <input type="checkbox" id="filterCodeBlocks" ${initialSettings.filterCodeBlocks ? 'checked' : ''}>
-            <label for="filterCodeBlocks">Filter Code Blocks:</label>
+            <label for="filterCodeBlocks">Skip code blocks when reading
+                <span style="font-size:0.9em;color:var(--vscode-descriptionForeground);">(Recommended for cleaner speech)</span>
+            </label>
         </div>
+        
+        <div class="status" id="statusElement">Ready to read AI responses.</div>
         
         <div class="button-row">
             <button id="saveSettings">Save Settings</button>
             <button id="stopSpeech">Stop Speech</button>
         </div>
-        
-        <div class="status" id="status">TTS service started. Waiting for AI responses...</div>
         
         <script nonce="${nonce}">
             // Setup web speech synthesis
@@ -442,7 +450,7 @@ export function getWebviewContent(
             const stopButton = document.getElementById('stopSpeech');
             const filterCodeBlocksCheckbox = document.getElementById('filterCodeBlocks');
             const voiceStatus = document.getElementById('voiceStatus');
-            const statusElement = document.getElementById('status');
+            const statusElement = document.getElementById('statusElement');
             
             // Initial values
             let selectedVoice = "${initialSettings.voice}";
